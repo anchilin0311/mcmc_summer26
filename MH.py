@@ -42,8 +42,8 @@ def proposal_distribution_normal(x):
     return np.random.normal(x, 1)  # normal proposal distribution with mean x and std 1
 #how acceptance rate changes with different mean and std. (plot figure out)
 
-def q_normal(proposed, current):
-    return (1 / np.sqrt(2 * np.pi)) * np.exp(-0.5 * (proposed - current)**2)  # normal density function
+def q_normal(proposing, current):
+    return (1 / np.sqrt(2 * np.pi)) * np.exp(-0.5 * (proposing - current)**2)  # normal density function
 
 
 
