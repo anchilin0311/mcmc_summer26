@@ -216,6 +216,21 @@ def mh_3d_plot(samples, step=20, bins=80, pause_time=0.5):
     plt.tight_layout()
     plt.show()
 
+
+# autocorrelation
+
+"""def autocorrelation(samples, step = 1):
+    x = np.asarray(samples) - np.mean(samples)
+
+    autocorrelation = []
+
+    if step == 0, then correlation = 1
+    if step != 0, then correlation = sum(x[i] * x[i + step]) / sum(x[i]**2)
+    add that correlation to autocorrelation [] and return it as an array? but how to visualize it and do we have to do it every single step?
+    since my plotting visualization is  multiple steps (like 30-300) 
+    
+    TODO: also how to do this autocorrelation in higher dimension? 
+"""
 samples, acceptance_rate = metropolis_hastings(
     target_distribution_bimodal_3d,
     proposal_distribution_normal_2d,
