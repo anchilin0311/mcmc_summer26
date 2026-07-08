@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 # starting point (need to fix the dimension to match M-H)
 # x0 = np.array([10, 10]) # now just 2d
-x0 = np.array([0,0,0])
+x0 = np.array([3,0,0])
 
 def metropolis_hastings(target_distribution, proposal_distribution, q, x_0, iter):
 
@@ -59,16 +59,19 @@ def target_distribution_donut_2d(x, R=3, sigma=0.4):
     return np.exp(-0.5 * ((r - R) / sigma)**2)
 
 # donut 3d
-def target_distribution_donut_3d(x, R=3, r=1, sigma=0.25):
+def target_distribution_donut_3d(x, R=50, r=10, sigma=10):
     rho = np.sqrt(x[0]**2 + x[1]**2)
     distance_from_surface = np.sqrt((rho - R)**2 + x[2]**2) - r
     return np.exp(-0.5 * (distance_from_surface / sigma)**2)
 
+#donut keep in 3d but has other random dimension in there (or a recantangle long and thin)
+#fix ratio change dimension AND fix dimension change length & thickness. 
+# cross entropy? 
 
 # proposal distributions: 
 
 # standard normal 2d
-def proposal_distribution_normal_2d(x):
+def proposal_distribution_normal_nd(x):
     return np.random.normal(x, 1, size=x.shape)  # normal proposal distribution with mean x and std 1
 
 
@@ -193,8 +196,8 @@ def mh_3d_plot(samples, step=20, bins=80, pause_time=0.5):
         x_hist.hist(x_current, bins=bins, density=True, alpha=0.5, orientation = "vertical")
         x_hist.set_xlabel("x")
         x_hist.set_ylabel("density")
-        # x_hist.set_xlim(x_min, x_max)
-        x_hist.set_ylim(0, 1)
+        x_hist.set_xlim(x_min, x_max)
+        # x_hist.set_ylim(x_min, 1)
 
         #y marginal
         y_hist.hist(y_current, bins=bins, density=True, alpha=0.5, orientation = "horizontal")
@@ -206,7 +209,7 @@ def mh_3d_plot(samples, step=20, bins=80, pause_time=0.5):
         z_hist.hist(z_current, bins=bins, density=True, alpha=0.5, orientation = "vertical")
         z_hist.set_xlabel("z")
         z_hist.set_ylabel("density")
-        z_hist.set_ylim(0, 1)
+        z_hist.set_xlim(z_min, z_max)
 
         fig.suptitle(f"Samples till now: {i}")
 
@@ -230,20 +233,73 @@ def mh_3d_plot(samples, step=20, bins=80, pause_time=0.5):
     since my plotting visualization is  multiple steps (like 30-300) 
     
     TODO: also how to do this autocorrelation in higher dimension? 
+
+    cross entropy? cross autocorrelation?
+
+    look into FFT for autocorrelation (faster speed)
+
+    multimodal correlation time vs how far they are:)
+    donut, R bigger
+
 """
+
+def autocorrelation_1d(samples, step = 1000): 
+    samples = np.asarray(samples)
+    samples = samples - np.mean(samples)
+
+    autocorrelation = []
+
+    for s in range(step+1):
+        if s == 0: 
+            ac = 1.0
+        else: 
+            ac = np.sum(samples[:-s] * samples[s:]) / np.sum(samples*samples)
+        autocorrelation.append(ac)
+
+    return np.array(autocorrelation)
+
+def plot_ac_1d(samples, step = 1):
+    plt.figure(figsize=(8,6))
+    plt.plot(range(step+1), autocorrelation_1d(samples, step = step))
+    
+    plt.xlabel("steps")
+    plt.ylabel("Autocorrelation")
+    plt.title("Autocorrelation plot")
+
+    plt.legend()
+    plt.show()
+
+def plot_ac_nd(samples, step = 1):
+    samples = np.asarray(samples)
+    dim = samples.shape[1]
+
+    plt.figure(figsize=(8,6))
+
+    for d in range(dim):
+        plt.plot(range(step+1), autocorrelation_1d(samples[:,d], step = step), label=f"dim {d+1}")
+    
+    plt.xlabel("steps")
+    plt.ylabel("Autocorrelation")
+    plt.title("Autocorrelation per dimension")
+
+    plt.legend()
+    plt.show()
+        
+
+
+
 samples, acceptance_rate = metropolis_hastings(
     target_distribution_bimodal_3d,
-    proposal_distribution_normal_2d,
+    proposal_distribution_normal_nd,
     q_standard_normal_2d,
     x_0=x0,
     iter=100000
 )
 
-# mh_2d_plot(
-#     samples,
-#     target_distribution_donut_2d,
-#     step=500,
-#     pause_time=0.2
-# )
+theta = np.arctan2(samples[:, 1], samples[:, 0])
+plot_ac_1d(theta, step=100000)
 
-mh_3d_plot(samples, step=3000, bins=1000, pause_time=0.1)
+plot_ac_nd(samples,step = 100000)
+
+
+mh_3d_plot(samples, step=500, bins=90, pause_time=0.05)
