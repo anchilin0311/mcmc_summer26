@@ -99,6 +99,17 @@ def target_distribution_donut_3d(x, R=50, r=10, sigma=10):
     distance_from_surface = np.sqrt((rho - R)**2 + x[2]**2) - r
     return np.exp(-0.5 * (distance_from_surface / sigma)**2)
 
+# general radius and angle function
+def donut_r_theta(samples):
+    x = samples[:,0]
+    y = samples[:,1]
+
+    r = np.sqrt(x**2+y**2)
+    theta = np.arctan2(y,x)
+
+    return r, theta
+
+
 #donut keep in 3d but has other random dimension in there (or a recantangle long and thin)
 #fix ratio change dimension AND fix dimension change length & thickness. 
 # cross entropy? 
@@ -340,9 +351,35 @@ def tau_1d(samples, c):
     tau = taus[window]
     return tau
 
+# autocorrelation of radius vs angle (and also z if >=3 dim)
+def plot_donut_ac(samples, lag = 100):
+    r,theta = donut_r_theta(samples)
+
+    ac_r = autocorrelation_1d(r, lag)
+    ac_cos = autocorrelation_1d(np.cos(theta), lag)
+    ac_sin = autocorrelation_1d(np.sin(theta), lag)
+
+    lags = np.arange(lag+1)
+
+    plt.figure(figsize=(8,6))
+    plt.plot(lags,ac_r, label="radius")
+    plt.plot(lags, ac_cos, label="cos(theta)")
+    plt.plot(lags, ac_sin, label="sin(theta)")
+
+    if samples.shape[1] >=3:
+        ac_z = autocorrelation_1d(samples[:,2], lag)
+        plt.plot(lags, ac_z, label="z")
+
+    plt.xlabel("lag")
+    plt.ylabel("autocorrelation")
+    plt.title("radius vs angle autocorrelation")
+
+    plt.legend()
+    plt.show()
+
 
 samples, acceptance_rate = metropolis_hastings(
-    target_distribution_bimodal_v3_3d,
+    target_distribution_donut_3d,
     proposal_distribution_normal_nd,
     q_standard_normal_2d,
     x_0=x0,
@@ -363,5 +400,8 @@ for d in range(samples.shape[1]):
     print(f"dimension {d}: tau = {tau}")
 
 
-#print mode percetage
-mode_percentage(samples, [-50,-50,-50], [1,1,1])
+#print mode percetage for bimodal
+# mode_percentage(samples, [-50,-50,-50], [1,1,1])
+
+# autocorrelation for 2d, 3d donuts (radius, theta, z)
+plot_donut_ac(samples, lag=100)
