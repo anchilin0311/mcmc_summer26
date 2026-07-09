@@ -52,6 +52,41 @@ def target_distribution_bimodal_3d(x):
 
     return 0.7 * m1 + 0.3 * m2
 
+#closer modes -> smaller tau
+def target_distribution_bimodal_v2_3d(x):
+    m1 = np.exp(-0.5 * (((x[0] + 1) / 0.8)**2 + ((x[1] + 1) / 0.8)**2 + ((x[2] + 1) / 0.8)**2))
+
+    m2 = np.exp(-0.5 * (((x[0] - 1) / 0.6)**2 + ((x[1] - 1) / 0.6)**2 + ((x[2] - 1) / 0.6)**2))
+
+    return 0.7 * m1 + 0.3 * m2 
+
+def target_distribution_bimodal_v3_3d(x):
+    center1 = [-50,-50,-50]
+    center2 = [1,1,1]
+    m1 = np.exp(-0.5 * (((x[0] - center1[0]) / 0.8)**2 + ((x[1] - center1[1]) / 0.8)**2 + ((x[2] + center1[2]) / 0.8)**2))
+
+    m2 = np.exp(-0.5 * (((x[0] - center2[0]) / 0.6)**2 + ((x[1] - center1[1]) / 0.6)**2 + ((x[2] - center2[2]) / 0.6)**2))
+
+    return 0.7 * m1 + 0.3 * m2 
+
+def mode_percentage(samples, mode1, mode2):
+    count1=0
+    count2=0
+
+    for s in samples:
+        dist_to_mode1 = np.linalg.norm(s - mode1)
+        dist_to_mode2 = np.linalg.norm(s - mode2)
+
+        if dist_to_mode1 < dist_to_mode2:
+            count1 += 1
+        else: 
+            count2 += 1
+
+    print(f"percentage around {mode1} is {count1/len(samples)}" )
+    print(f"percentage around {mode2} is {count2/len(samples)}")
+    
+    return count1/len(samples), count2/len(samples)
+
 
 # donut 2d
 def target_distribution_donut_2d(x, R=3, sigma=0.4):
@@ -243,7 +278,8 @@ def mh_3d_plot(samples, step=20, bins=80, pause_time=0.5):
 
 """
 
-def autocorrelation_1d(samples, step = 1000): 
+#autocorrelation
+def autocorrelation_1d(samples, step = 1): 
     samples = np.asarray(samples)
     samples = samples - np.mean(samples)
 
@@ -284,12 +320,29 @@ def plot_ac_nd(samples, step = 1):
 
     plt.legend()
     plt.show()
-        
 
+#find the window and calculate tau
+def ac_window(taus, c):
+    #use the sokal rule (stop at first M where M>=c*tau(M))
+    for m in range(len(taus)):
+        if m >= c*taus[m]:
+            return m
+    return len(taus)-1 #return last possible lag if never find a good stopping point
+
+def tau_1d(samples, c):
+    ac = autocorrelation_1d(samples, step=10)
+    taus = np.zeros(len(ac))
+
+    for m in range(len(ac)):
+        taus[m]=1+2*np.sum(ac[1:m+1])
+
+    window = ac_window(taus,c)
+    tau = taus[window]
+    return tau
 
 
 samples, acceptance_rate = metropolis_hastings(
-    target_distribution_bimodal_3d,
+    target_distribution_bimodal_v3_3d,
     proposal_distribution_normal_nd,
     q_standard_normal_2d,
     x_0=x0,
@@ -297,9 +350,18 @@ samples, acceptance_rate = metropolis_hastings(
 )
 
 theta = np.arctan2(samples[:, 1], samples[:, 0])
-plot_ac_1d(theta, step=100000)
+plot_ac_1d(theta, step=1000)
 
-plot_ac_nd(samples,step = 100000)
+plot_ac_nd(samples,step = 1000)
 
 
-mh_3d_plot(samples, step=500, bins=90, pause_time=0.05)
+# mh_3d_plot(samples, step=500, bins=90, pause_time=0.05)
+
+#print tau
+for d in range(samples.shape[1]):
+    tau = tau_1d(samples[:,d],c=5)
+    print(f"dimension {d}: tau = {tau}")
+
+
+#print mode percetage
+mode_percentage(samples, [-50,-50,-50], [1,1,1])
