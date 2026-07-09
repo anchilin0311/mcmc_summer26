@@ -287,6 +287,13 @@ def mh_3d_plot(samples, step=20, bins=80, pause_time=0.5):
     multimodal correlation time vs how far they are:)
     donut, R bigger
 
+    
+    sigma: too small & too large -> high auto correlation; 
+           medium -> low autocorrelation
+    R: larger -> slower angular exploring (aka. higher angular autocorrelation time)
+    r: smaller (narrower tube) -> lower acceptance rate (aka. higher autocorrelation time)
+       higher -> easier movement -> more space to explore (aka. may increase global mixing time)
+
 """
 
 #autocorrelation
