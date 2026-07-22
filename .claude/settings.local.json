@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(ls ~/Desktop/\"Desktop - Anchi's MacBook Pro\"/ 2>&1)",
-      "Read(//Users/anchilin/Desktop/**)"
-    ]
-  }
-}

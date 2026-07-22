@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 # starting point (need to fix the dimension to match M-H)
 # x0 = np.array([10, 10]) # now just 2d
-x0 = np.array([3,0,0])
+x0 = np.array([55,0,0])
 
 def metropolis_hastings(target_distribution, proposal_distribution, q, x_0, iter):
 
@@ -94,7 +94,7 @@ def target_distribution_donut_2d(x, R=3, sigma=0.4):
     return np.exp(-0.5 * ((r - R) / sigma)**2)
 
 # donut 3d
-def target_distribution_donut_3d(x, R=50, r=10, sigma=10):
+def target_distribution_donut_3d(x, R=50, r=5, sigma=.25):
     rho = np.sqrt(x[0]**2 + x[1]**2)
     distance_from_surface = np.sqrt((rho - R)**2 + x[2]**2) - r
     return np.exp(-0.5 * (distance_from_surface / sigma)**2)
@@ -339,24 +339,37 @@ def plot_ac_nd(samples, step = 1):
     plt.legend()
     plt.show()
 
-#find the window and calculate tau
-def ac_window(taus, c):
+#find the window and calculate tau TODO: redo this check!!
+def ac_window(taus, c = 5):
     #use the sokal rule (stop at first M where M>=c*tau(M))
-    for m in range(len(taus)):
+    taus = np.asarray(taus).reshape(-1)
+
+    for m in range(1, len(taus)):
         if m >= c*taus[m]:
             return m
-    return len(taus)-1 #return last possible lag if never find a good stopping point
+    # return len(taus)-1 #return last possible lag if never find a good stopping point
+    return None #avliable autocorrelaiton sequence is too short to find a valid good window
 
-def tau_1d(samples, c):
-    ac = autocorrelation_1d(samples, step=10)
+def tau_1d(samples, c, max_lag = 1000):
+
+    max_lag = min(max_lag, len(samples)-1)
+
+    ac = autocorrelation_1d(samples, step=max_lag)
+    ac = np.asarray(ac).reshape(-1)
     taus = np.zeros(len(ac))
 
     for m in range(len(ac)):
         taus[m]=1+2*np.sum(ac[1:m+1])
 
     window = ac_window(taus,c)
+
+    if window is None:
+        print(f'no valid window found through lag {max_lag}\n'
+              f'last run estimate = {taus[-1]:.4f}')
+        return np.nan
+        
     tau = taus[window]
-    return tau
+    return float(tau)
 
 # autocorrelation of radius vs angle (and also z if >=3 dim)
 def plot_donut_ac(samples, lag = 100):
@@ -403,12 +416,12 @@ plot_ac_nd(samples,step = 1000)
 
 #print tau
 for d in range(samples.shape[1]):
-    tau = tau_1d(samples[:,d],c=5)
-    print(f"dimension {d}: tau = {tau}")
+    tau = tau_1d(samples[:,d],c=5, max_lag= 20000)
+    print(f"dimension {d}: tau = {tau:.4f}")
 
 
 #print mode percetage for bimodal
-# mode_percentage(samples, [-50,-50,-50], [1,1,1])
+# mode_percentage(samples, [-2,-2,-2], [3,3,1])
 
 # autocorrelation for 2d, 3d donuts (radius, theta, z)
-plot_donut_ac(samples, lag=100)
+# plot_donut_ac(samples, lag=100)
