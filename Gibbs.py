@@ -20,7 +20,7 @@ def gibbs_sampling_nd(cond_dist, x_0, iter):
 
 #correlated 2d normal dist
 
-rho = .8
+rho = .5
 
 #sample x conditional on current val of y
 def sample_normal_2d_x_given_y(current):
@@ -224,15 +224,15 @@ cond_dist_2d = [sample_normal_2d_x_given_y,sample_normal_2d_y_given_x]
 samples_2d = gibbs_sampling_nd(cond_dist=cond_dist_2d, x_0=x0_2d, iter = 100000)
 
 # gibbs_2d_scatter(samples, step = 100, bins = 80, pause_time= 0.3)
-tau_2d = calc_tau_nd(samples_2d, burn_in=100, max_lag=2000)
+tau_2d = calc_tau_nd(samples_2d, burn_in=40, max_lag=2000)
 ac_np_plot(tau_2d, max_lag=40)
 
 #3d
-cond_dist_3d = [sample_normal_3d_x_given_yz, sample_normal_3d_x_given_yz, sample_normal_3d_z_given_xy]
+cond_dist_3d = [sample_normal_3d_x_given_yz, sample_normal_3d_y_given_xz, sample_normal_3d_z_given_xy]
 samples_3d = gibbs_sampling_nd(cond_dist=cond_dist_3d, x_0 = x0_3d, iter = 100000)
 
-tau_3d = calc_tau_nd(samples_3d, burn_in = 100, max_lag = 2000)
-ac_np_plot(tau_3d, max_lag=40)
+tau_3d = calc_tau_nd(samples_3d, burn_in = 40, max_lag = 2000)
+ac_np_plot(tau_3d, max_lag=100)
 
 
 
