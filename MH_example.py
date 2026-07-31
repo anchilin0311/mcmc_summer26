@@ -2,6 +2,7 @@ import numpy as np
 import scipy.stats as stats
 import matplotlib.pyplot as plt
 from scipy.linalg import solve_triangular
+import time
 
 np.random.seed(42)
 
@@ -35,7 +36,7 @@ np.random.seed(42)
 N = 80
 x = np.linspace(0, 1, N)
 kernel_gamma = 0.03
-lam = 5.35
+lam = 5.35 #noise precision
 alpha_del = 1
 beta_del = 1e-4
 alpha_lam = 1
@@ -51,8 +52,10 @@ A = A / np.sum(A[0, :])
 observed_data = generate_blurred_data(true_signal, x, A, lam)
 
 def neglogpi_theta(delta, lam, A, data):
+    N_dim = len(data)
+
     # compute prior precision L
-    L = 2*np.diag(np.ones(N)) - np.diag(np.ones(N-1), k=1) - np.diag(np.ones(N-1), k=-1)
+    L = 2*np.diag(np.ones(N_dim)) - np.diag(np.ones(N_dim-1), k=1) - np.diag(np.ones(N_dim-1), k=-1)
     L = delta*L
     
     # compute posterior precision and mean
@@ -63,7 +66,7 @@ def neglogpi_theta(delta, lam, A, data):
     # compute negative log of determinant ratio
     (sdetL, logdetL) = np.linalg.slogdet(L)
     (sdetLpost, logdetLpost) = np.linalg.slogdet(Lpost)
-    det_ratio = 0.5*logdetLpost - 0.5*logdetL - N/2*np.log(lam)
+    det_ratio = 0.5*logdetLpost - 0.5*logdetL - N_dim/2*np.log(lam)
     
     # compute data, posterior mean, and hyperprior terms
     uQu_term = - 0.5*np.dot(xpost, np.dot(Lpost, xpost))
@@ -79,7 +82,7 @@ def metropolis_hastings(n, delta_initial, lambda_initial, delta_std_proposal, la
     delta_current = delta_initial
     lambda_current = lambda_initial
 
-    neglogpi_current = neglogpi_theta(delta_current, lambda_current, A, observed_data)
+    neglogpi_current = neglogpi_theta(delta_current, lambda_current, A, data)
 
     accepted_count = 0
 
@@ -88,7 +91,7 @@ def metropolis_hastings(n, delta_initial, lambda_initial, delta_std_proposal, la
         lambda_candidate = lambda_current + np.random.normal(0, lambda_std_proposal)
 
         if (delta_candidate > 0 and lambda_candidate > 0):
-            neglogpi_candidate = neglogpi_theta(delta_candidate, lambda_candidate, A, observed_data)
+            neglogpi_candidate = neglogpi_theta(delta_candidate, lambda_candidate, A, data)
 
             log_alpha = neglogpi_current - neglogpi_candidate
 
@@ -118,7 +121,7 @@ def autocorrelation_1d(samples, max_lag = 50):
 
     return np.array(autocorrelation)
 
-def plot_ac(samples, max_lag=50, labels=None):
+def plot_ac(samples, max_lag=250, labels=None):
     samples = np.asarray(samples)
     dim = samples.shape[1]
 
@@ -139,7 +142,42 @@ def plot_ac(samples, max_lag=50, labels=None):
     plt.legend()
     plt.show()
 
-       
+def time_vs_N(Ns=[20, 40, 60, 80, 100, 120, 140, 160, 250, 400], num_samples=300):
+    runtimes = []
+
+    for N_dim in Ns:
+        x = np.linspace(0, 1, N_dim)
+
+        A = np.zeros((N_dim, N_dim))
+
+        for i in range(N_dim):
+            for j in range(N_dim):
+                d = min(np.abs(i-j), N_dim - np.abs(i-j))
+                A[i,j] = gaussian_kernel(d/N_dim, kernel_gamma)/N_dim
+
+        A = A/np.sum(A[0,:])
+        data = generate_blurred_data(true_signal, x, A, lam)
+
+        t0 = time.time()
+        _ = metropolis_hastings(num_samples,delta_initial,lambda_initial,delta_std_proposal,lambda_std_proposal,A,data)
+        t1 = time.time()
+
+        elapsed = t1 - t0
+        runtimes.append(elapsed)
+        print(f"N = {N_dim:3d};  execution Time: {elapsed:.3f} s")
+
+    # Plot timing curve
+    plt.figure(figsize=(8, 5))
+    plt.plot(Ns, runtimes, 'o-', color='crimson', linewidth=2, markersize=7, label='Measured Sampling Time')
+    plt.title(f'execution time vs. dimension ($N$)\n[with {num_samples} samples]')
+    plt.xlabel('dimension ($N$)')
+    plt.ylabel('seconds')
+    plt.grid(True, linestyle=":", alpha=0.6)
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+
+    return Ns, runtimes
 
 
 n = 10000 # num of samples
@@ -152,3 +190,6 @@ lambda_std_proposal = 0.4
 samples = metropolis_hastings(n, delta_initial, lambda_initial, delta_std_proposal, lambda_std_proposal, A, observed_data)
 plot_ac(samples, max_lag=500,labels = [r'$\delta$ (Prior Precision)', r'$\lambda$ (Noise Precision)'])
  
+Ns, runtimes = time_vs_N()
+#why is accpetance rate high? 
+# convergence plot (error in pi(theta; N) vs N)
